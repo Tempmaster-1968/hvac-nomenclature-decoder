@@ -162,7 +162,7 @@
   const BRANDS = {
     goodman: {
       name:'Goodman', sub:'Amana · Daikin · Janitrol', accent:'from-orange-500 to-red-600', initials:'GD',
-      examples:['GSX160361','GSXC180601','GSZ140481','CKL36-1','GSC130361AB'],
+      examples:['GSX160361','GSXC180601','GSZ140481','CKL36-1','GPG1436080M41'],
       placeholder:'GSX160361',
       schemes:[
         { label:'Legacy CK/CKL (R-22, ~1998–2006)', detect:/^C[A-Z]{1,2}\d{2}/, defaultRefrigerant:'R-22',
@@ -185,6 +185,17 @@
             { take:/^[134]/, label:'Voltage / Phase', role:'voltage', map:{'1':V.s1,'3':V.s3,'4':V.v460} },
             { take:/^.+$/, label:'Revision', optional:true, fmt:v=>`Revision ${v}` },
           ] },
+        { label:'Packaged unit (GPG/GPC/GPH/GPD)', detect:/^GP[GCHD]/, defaultRefrigerant:'R-410A',
+          segments:[
+            { take:/^GP/, label:'Configuration', fmt:()=>'Single-Package Unit' },
+            { take:/^[GCHD]/, label:'Product Type', role:'type', map:{G:'Gas Heat / Electric Cool',C:'Air Conditioner',H:'Heat Pump',D:'Dual Fuel'} },
+            { take:/^\d{2}/, label:'Efficiency', fmt:v=>`${parseInt(v,10)} SEER / SEER2` },
+            { take:/^\d{2}/, label:'Nominal Cooling', role:'capacity', fmt:cap2 },
+            { take:/^\d{3}/, label:'Gas Heat Input', optional:true, fmt:v=>`${(parseInt(v,10)*1000).toLocaleString()} BTU/h gas heat` },
+            { take:/^[A-Z]/, label:'Orientation', optional:true, map:{M:'Multi-position'}, fmt:v=>`Config ${v}` },
+            { take:/^\d{2}/, label:'Voltage / Phase', role:'voltage', optional:true, map:{'41':V.s1}, fmt:v=>`Voltage code ${v} — verify on plate` },
+            { take:/^.+$/, label:'Revision', optional:true, fmt:v=>`Revision ${v}` },
+          ] },
       ],
       voltageCodes:[{code:'1',desc:V.s1},{code:'3',desc:V.s3},{code:'4',desc:V.v460},{code:'-1 / -3 / -4',desc:'Legacy CK suffix (1ph / 3ph / 460V)'}],
       refrigerantCodes:[{code:'X / Z',desc:'R-410A (GSX/SSX/GSZ, 2006+)'},{code:'C / H',desc:'R-22 (CK, CKL, GSC, GSH)'},{code:'GLXS',desc:'R-32 (2025+ low-GWP)'}],
@@ -193,7 +204,7 @@
 
     carrier: {
       name:'Carrier', sub:'Bryant · Payne', accent:'from-blue-500 to-blue-700', initials:'CR',
-      examples:['24ABC636A003','25HCB636A003','38CKB036','38YXA036','38TXA036'],
+      examples:['24ABC636A003','25HCB636A003','38CKB036','655AEX036000AABF','38TXA036'],
       placeholder:'24ABC636A003',
       schemes:[
         { label:'Legacy 38-series outdoor (R-22 / early Puron)', detect:/^38/, defaultRefrigerant:'R-22',
@@ -214,6 +225,15 @@
             { take:/^\d{2}/, label:'Nominal Capacity', role:'capacity', fmt:cap2 },
             { take:/^[A-Z]/, label:'Voltage / Phase', role:'voltage', map:{A:V.s1,B:V.s1,C:V.s3,D:V.v460,H:V.s1} },
             { take:/^.+$/, label:'Series / Revision', optional:true, fmt:v=>`Revision ${v}` },
+          ] },
+        { label:'Residential single-package 6xx (Carrier/Bryant/Payne)', detect:/^6\d{2}[A-Z]/, defaultRefrigerant:'R-410A (Puron) — verify on plate',
+          segments:[
+            { take:/^6\d{2}/, label:'Series', role:'type', fmt:()=>'Residential single-package unit' },
+            { take:/^[A-Z]/, label:'Design', optional:true, fmt:v=>`Design series ${v}` },
+            { take:/^[A-Z]{1,2}/, label:'Product / Heat Type', optional:true, fmt:v=>({NX:'Heat Pump',PX:'AC / heat (verify)',EX:'Packaged — verify AC/HP/gas on plate'}[v]||`Type ${v} — verify on plate`) },
+            { take:/^\d{3}/, label:'Nominal Capacity', role:'capacity', fmt:cap3 },
+            { take:/^\d{3}/, label:'Electric Heat Size', optional:true, fmt:v=>v==='000'?'No factory electric heat (verify)':`Heat/options ${v}` },
+            { take:/^.+$/, label:'Electrical & Options', optional:true, fmt:v=>`Options ${v} — verify voltage/phase on rating plate` },
           ] },
       ],
       voltageCodes:[{code:'A / B / H',desc:V.s1},{code:'C',desc:V.s3},{code:'D',desc:V.v460},{code:'38-series 1/3/5/6',desc:'Legacy numeric (verify per line)'}],
