@@ -185,6 +185,13 @@
             { take:/^[134]/, label:'Voltage / Phase', role:'voltage', map:{'1':V.s1,'3':V.s3,'4':V.v460} },
             { take:/^.+$/, label:'Revision', optional:true, fmt:v=>`Revision ${v}` },
           ] },
+        { label:'Packaged M-series (Goodman/Daikin, GP*M — newer)', detect:/^GP[GCHD]M/, defaultRefrigerant:null,
+          segments:[
+            { take:/^GP/, label:'Configuration', fmt:()=>'Single-Package Unit' },
+            { take:/^[GCHD]/, label:'Product Type', role:'type', map:{G:'Gas Heat / Electric Cool',C:'Air Conditioner',H:'Heat Pump',D:'Dual Fuel'} },
+            { take:/^M/, label:'Series', fmt:()=>'M-series (Goodman/Daikin)' },
+            { take:/^.+$/, label:'Capacity / Electrical', role:'capacity', fmt:v=>`Code ${v} — newer M-series; verify tonnage, refrigerant & electrical on rating plate` },
+          ] },
         { label:'Packaged unit (GPG/GPC/GPH/GPD)', detect:/^GP[GCHD]/, defaultRefrigerant:'R-410A',
           segments:[
             { take:/^GP/, label:'Configuration', fmt:()=>'Single-Package Unit' },
@@ -538,13 +545,14 @@
   /* ===================== state + rendering ===================== */
   let currentBrand = 'goodman';
   let forcedBrand = null;                          // null = auto-detect; set when a brand is tapped
+  let activeBrand = null;                          // brand highlighted right now (null = none)
   const el = id => document.getElementById(id);
   const brandGrid = el('brandGrid'), modelInput = el('modelInput'), exampleChips = el('exampleChips');
 
   function renderBrandGrid(){
     let html = '';
     Object.entries(BRANDS).forEach(([key,b])=>{
-      const active = key===currentBrand;
+      const active = key===activeBrand;
       const cls = ['group relative flex items-center gap-2.5 px-3 py-2.5 rounded-2xl border-2 transition-all text-left w-full',
         active?'border-brand-500 bg-brand-50 dark:bg-brand-500/10 shadow-md shadow-brand-500/10'
               :'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'].join(' ');
@@ -658,9 +666,11 @@
 
   function update(){
     const model = modelInput.value;
-    const key = forcedBrand || autoDetect(model);
-    if(key) currentBrand = key;
-    const res = decode(currentBrand, model);
+    const key = forcedBrand || autoDetect(model);      // null when unrecognized
+    activeBrand = key;                                  // highlight only a real match — clears between inputs
+    if(key) currentBrand = key;                         // remember last good brand for the reference matrix
+    const res = key ? decode(key, model)
+                    : { segs:[], rest:model.trim(), scheme:null, detected:false, brand:BRANDS[currentBrand] };
     renderBrandGrid(); renderExamples(); renderMatrix();
     renderSummary(res); renderBreakdown(res);
     updateDetectedLabel(model, key);
